@@ -1,10 +1,13 @@
 """
-Trope_Remux — Remux a video into a different container format.
+Trope_Remux — Remux a video into a different container format and save it.
 
 Stream-copies all tracks (no re-encoding) into the target container —
-no quality loss, just a wrapper change. VIDEO in -> VIDEO out so it
-chains naturally with Convert Framerate and ComfyUI's built-in
-Load Video / Save Video.
+no quality loss, just a wrapper change. Writes the result straight to
+ComfyUI's output directory and acts as an output node, because piping
+the remuxed VIDEO through the built-in Save Video node would lose the
+chosen container (Save Video re-saves as mp4 regardless of input).
+
+Still returns VIDEO so it can be chained into verification nodes.
 """
 
 import hashlib
@@ -37,7 +40,7 @@ FORMAT_EXT = {
 
 
 class Trope_Remux:
-    """Change a video's container format without re-encoding."""
+    """Change a video's container format without re-encoding, and save it."""
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -45,36 +48,35 @@ class Trope_Remux:
             "required": {
                 "input": ("VIDEO",),
                 "target_format": (FORMATS, {"default": "mov"}),
+                "filename_prefix": ("STRING", {"default": "video/ComfyUI"}),
             },
         }
 
     RETURN_TYPES = ("VIDEO",)
     RETURN_NAMES = ("output",)
     FUNCTION = "execute"
+    OUTPUT_NODE = True
     CATEGORY = "Trope Tools/Framerate Converter"
 
-    def execute(self, input, target_format):
+    def execute(self, input, target_format, filename_prefix):
+        if folder_paths is None:
+            raise RuntimeError(
+                "ComfyUI folder_paths unavailable; cannot save remuxed video."
+            )
+        if InputImpl is None:
+            raise RuntimeError("ComfyUI VIDEO type unavailable; cannot return result.")
+
         src_path = self._video_to_path(input)
         target_ext = FORMAT_EXT[target_format]
-        basename = os.path.basename(src_path)
-        stem, current_ext = os.path.splitext(basename)
 
-        # Already in the target container — skip the round-trip.
-        if current_ext.lower() == target_ext.lower():
-            if InputImpl is None:
-                raise RuntimeError("ComfyUI VIDEO type unavailable; cannot return result.")
-            return (InputImpl.VideoFromFile(src_path),)
-
-        output_dir = folder_paths.get_input_directory() if folder_paths else os.path.dirname(src_path)
-        new_name = f"{stem}_remux{target_ext}"
-        output_path = os.path.join(output_dir, new_name)
-
-        if os.path.exists(output_path):
-            base, ext = os.path.splitext(output_path)
-            counter = 1
-            while os.path.exists(output_path):
-                output_path = f"{base}_{counter}{ext}"
-                counter += 1
+        full_output_folder, filename, counter, subfolder, _ = (
+            folder_paths.get_save_image_path(
+                filename_prefix, folder_paths.get_output_directory()
+            )
+        )
+        os.makedirs(full_output_folder, exist_ok=True)
+        new_name = f"{filename}_{counter:05}{target_ext}"
+        output_path = os.path.join(full_output_folder, new_name)
 
         cmd = [
             FFMPEG, "-y",
@@ -95,13 +97,21 @@ class Trope_Remux:
                 f"FFmpeg remux failed:\n{result.stderr.strip()[-500:]}"
             )
 
-        if InputImpl is None:
-            raise RuntimeError("ComfyUI VIDEO type unavailable; cannot return result.")
-
-        return (InputImpl.VideoFromFile(output_path),)
+        return {
+            "ui": {
+                "videos": [
+                    {
+                        "filename": new_name,
+                        "subfolder": subfolder,
+                        "type": "output",
+                    }
+                ]
+            },
+            "result": (InputImpl.VideoFromFile(output_path),),
+        }
 
     @classmethod
-    def IS_CHANGED(cls, input, target_format):
+    def IS_CHANGED(cls, input, target_format, filename_prefix):
         return float("NaN")
 
     @staticmethod

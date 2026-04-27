@@ -11,6 +11,21 @@ import math
 AUDIO_MODES = ["allow_shift", "preserve_pitch", "copy", "no_audio"]
 
 
+def _chain_atempo(speed_factor: float) -> str:
+    # FFmpeg's atempo accepts [0.5, 100.0] per stage — chain stages of 0.5
+    # or 2.0 to reach factors outside that range without distortion.
+    parts = []
+    remaining = speed_factor
+    while remaining < 0.5:
+        parts.append("atempo=0.5")
+        remaining /= 0.5
+    while remaining > 2.0:
+        parts.append("atempo=2.0")
+        remaining /= 2.0
+    parts.append(f"atempo={remaining}")
+    return ",".join(parts)
+
+
 class Trope_CalcAudio:
     """Calculate audio processing parameters for framerate conversion."""
 
@@ -55,7 +70,7 @@ class Trope_CalcAudio:
             description = "Audio speed-adjusted with pitch correction"
             pitch_shift_semitones = 0.0
         else:  # allow_shift
-            filter_string = f"atempo={speed_factor}"
+            filter_string = _chain_atempo(speed_factor)
             description = f"Audio speed-adjusted, pitch shifts {pitch_shift_semitones:+.2f} semitones"
             intermediate_rate = 0
 

@@ -82,10 +82,12 @@ You can also skip Save Video — Convert Framerate already drops a converted fil
 Because both nodes use the `VIDEO` type, you can wire them directly:
 
 ```
-[Load Video]  →  [Convert Framerate]  →  [Remux Container]  →  [Save Video]
+[Load Video]  →  [Convert Framerate]  →  [Remux Container]
 ```
 
 This lets you change the framerate **and** the container in a single pass — for example, "take this 24 fps `.mp4` and give me a 25 fps `.mov`."
+
+> **Don't pipe `Remux Container` into `Save Video`.** The built-in Save Video node ignores the input's container and re-saves as `.mp4`, which would undo the remux. `Remux Container` writes its output straight to `~/comfyui/output/` itself — set `filename_prefix` on the node to control the name.
 
 ## The settings (only if you want to tweak)
 
