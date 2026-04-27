@@ -19,8 +19,8 @@
       "id": 2,
       "type": "trope_Remux",
       "pos": [620, 250],
-      "size": [320, 110],
-      "widgets_values": ["mov"],
+      "size": [320, 130],
+      "widgets_values": ["mov", "video/ComfyUI"],
       "inputs": [
         {"name": "input", "type": "VIDEO", "link": 1}
       ],
@@ -34,7 +34,7 @@
   ],
   "groups": [
     {
-      "title": "Wire Load Video → Convert Framerate → Remux Container → Save Video",
+      "title": "Wire Load Video → Convert Framerate → Remux Container (saves to output/)",
       "bounding": [150, 180, 820, 350],
       "color": "#3f789e"
     }
