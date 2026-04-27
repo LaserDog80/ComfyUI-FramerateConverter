@@ -1,0 +1,50 @@
+{
+  "last_node_id": 2,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "trope_ConvertFramerate",
+      "pos": [200, 250],
+      "size": [340, 220],
+      "widgets_values": [25.0, "speed_change", "allow_shift", 18, "high"],
+      "inputs": [
+        {"name": "input", "type": "VIDEO", "link": null}
+      ],
+      "outputs": [
+        {"name": "output", "type": "VIDEO", "links": [1]}
+      ]
+    },
+    {
+      "id": 2,
+      "type": "trope_Remux",
+      "pos": [620, 250],
+      "size": [320, 110],
+      "widgets_values": ["mov"],
+      "inputs": [
+        {"name": "input", "type": "VIDEO", "link": 1}
+      ],
+      "outputs": [
+        {"name": "output", "type": "VIDEO", "links": []}
+      ]
+    }
+  ],
+  "links": [
+    [1, 1, 0, 2, 0, "VIDEO"]
+  ],
+  "groups": [
+    {
+      "title": "Wire Load Video → Convert Framerate → Remux Container → Save Video",
+      "bounding": [150, 180, 820, 350],
+      "color": "#3f789e"
+    }
+  ],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.9,
+      "offset": [0, 0]
+    }
+  },
+  "version": 0.4
+}

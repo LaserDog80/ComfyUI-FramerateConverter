@@ -1,0 +1,6 @@
+# DPICK Framerate Converter — ComfyUI Node Dependencies
+# No external Python packages required.
+# All nodes use only the Python standard library + FFmpeg/ffprobe (system binaries).
+#
+# IMPORTANT: Do NOT add torch, torchvision, or torchaudio here.
+# ComfyUI manages its own PyTorch installation.

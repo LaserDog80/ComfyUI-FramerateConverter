@@ -1,0 +1,20 @@
+[project]
+name = "comfyui-framerate-converter"
+version = "1.0.0"
+description = "Convert video framerates and remux containers with two simple FFmpeg-powered nodes. Drag-and-drop, no pip dependencies, chains via the VIDEO type."
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+classifiers = [
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Video :: Conversion",
+]
+
+[project.urls]
+Repository = "https://github.com/LaserDog80/ComfyUI-FramerateConverter"
+"Bug Tracker" = "https://github.com/LaserDog80/ComfyUI-FramerateConverter/issues"
+
+[tool.comfy]
+PublisherId = "tropemedia"
+DisplayName = "Framerate Converter"
+Icon = ""
