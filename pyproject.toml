@@ -1,6 +1,6 @@
 [project]
 name = "comfyui-framerate-converter"
-version = "1.0.0"
+version = "1.0.1"
 description = "Convert video framerates and remux containers with two simple FFmpeg-powered nodes. Drag-and-drop, no pip dependencies, chains via the VIDEO type."
 license = { file = "LICENSE" }
 requires-python = ">=3.10"
