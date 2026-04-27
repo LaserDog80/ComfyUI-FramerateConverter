@@ -2,12 +2,10 @@
 Trope_Remux — Remux a video into a different container format and save it.
 
 Stream-copies all tracks (no re-encoding) into the target container —
-no quality loss, just a wrapper change. Writes the result straight to
-ComfyUI's output directory and acts as an output node, because piping
-the remuxed VIDEO through the built-in Save Video node would lose the
-chosen container (Save Video re-saves as mp4 regardless of input).
-
-Still returns VIDEO so it can be chained into verification nodes.
+no quality loss, just a wrapper change. Pure output node: writes to
+ComfyUI's output directory and previews the saved file in-graph. Has
+no output port because piping through Save Video would re-save as mp4
+and lose the chosen container.
 """
 
 import hashlib
@@ -18,17 +16,11 @@ import subprocess
 from ._ffmpeg import FFMPEG
 
 
-# These imports only succeed inside a running ComfyUI process. Guard them so
-# the module still loads for unit tests / standalone smoke tests.
+# Guarded so the module still loads for standalone smoke tests outside ComfyUI.
 try:
     import folder_paths
 except ImportError:
     folder_paths = None
-
-try:
-    from comfy_api.latest import InputImpl
-except ImportError:
-    InputImpl = None
 
 
 FORMATS = ["mov", "mp4", "mkv"]
@@ -52,8 +44,7 @@ class Trope_Remux:
             },
         }
 
-    RETURN_TYPES = ("VIDEO",)
-    RETURN_NAMES = ("output",)
+    RETURN_TYPES = ()
     FUNCTION = "execute"
     OUTPUT_NODE = True
     CATEGORY = "Trope Tools/Framerate Converter"
@@ -63,8 +54,6 @@ class Trope_Remux:
             raise RuntimeError(
                 "ComfyUI folder_paths unavailable; cannot save remuxed video."
             )
-        if InputImpl is None:
-            raise RuntimeError("ComfyUI VIDEO type unavailable; cannot return result.")
 
         src_path = self._video_to_path(input)
         target_ext = FORMAT_EXT[target_format]
@@ -97,17 +86,19 @@ class Trope_Remux:
                 f"FFmpeg remux failed:\n{result.stderr.strip()[-500:]}"
             )
 
+        # ComfyUI's frontend renders this dict shape as an inline video player —
+        # same payload its built-in PreviewVideo / SaveVideo emit.
         return {
             "ui": {
-                "videos": [
+                "images": [
                     {
                         "filename": new_name,
                         "subfolder": subfolder,
                         "type": "output",
                     }
-                ]
-            },
-            "result": (InputImpl.VideoFromFile(output_path),),
+                ],
+                "animated": (True,),
+            }
         }
 
     @classmethod
@@ -149,4 +140,3 @@ if __name__ == "__main__":
     print("Remux node loaded.")
     print(f"Supported formats: {FORMATS}")
     print(f"folder_paths available: {folder_paths is not None}")
-    print(f"InputImpl available: {InputImpl is not None}")
