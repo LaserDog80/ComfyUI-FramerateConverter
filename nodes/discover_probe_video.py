@@ -58,8 +58,17 @@ class Trope_ProbeVideo:
         if video_stream is None:
             raise RuntimeError("No video stream found in file")
 
+        # avg_frame_rate is total_frames / duration — the perceived playback
+        # rate. r_frame_rate is the LCM of all stream timestamps and can be
+        # wildly misleading on VFR or AI-generated sources (e.g. Dreamina
+        # exports declare r_frame_rate=60/1 for a video that actually plays
+        # at ~24 fps). Prefer avg_frame_rate; fall back to r_frame_rate only
+        # if avg is missing/zero.
         r_frame_rate = video_stream.get("r_frame_rate", "0/1")
-        fps = _parse_fraction(r_frame_rate)
+        avg_frame_rate = video_stream.get("avg_frame_rate", "0/0")
+        fps = _parse_fraction(avg_frame_rate)
+        if fps <= 0:
+            fps = _parse_fraction(r_frame_rate)
         duration = float(fmt.get("duration", 0))
 
         # nb_frames is often the literal string "N/A" on MOV/some MKV containers,
@@ -81,10 +90,17 @@ class Trope_ProbeVideo:
         audio_channels = int(audio_stream.get("channels", 0)) if has_audio else 0
         audio_codec = audio_stream.get("codec_name", "") if has_audio else ""
 
+        # framerate_fraction reflects the rate we actually used (avg if
+        # available, r as fallback) so downstream summaries don't display a
+        # misleading r_frame_rate alongside the corrected fps.
+        framerate_fraction = (
+            avg_frame_rate if _parse_fraction(avg_frame_rate) > 0 else r_frame_rate
+        )
+
         media_info = {
             "path": video_path,
             "framerate": fps,
-            "framerate_fraction": r_frame_rate,
+            "framerate_fraction": framerate_fraction,
             "duration": duration,
             "frame_count": frame_count,
             "width": width,
@@ -98,7 +114,7 @@ class Trope_ProbeVideo:
 
         summary_lines = [
             f"File: {video_path}",
-            f"FPS: {fps:.3f} ({r_frame_rate})",
+            f"FPS: {fps:.3f} ({framerate_fraction})",
             f"Duration: {duration:.2f}s",
             f"Frames: {frame_count}",
             f"Resolution: {width}x{height}",
@@ -114,11 +130,21 @@ class Trope_ProbeVideo:
 
 
 def _parse_fraction(fraction_str):
-    """Parse a framerate fraction string like '24000/1001' to float."""
-    if "/" in fraction_str:
-        num, den = fraction_str.split("/")
-        return float(num) / float(den)
-    return float(fraction_str)
+    """Parse a framerate fraction string like '24000/1001' to float.
+
+    Returns 0.0 for '0/0' or other malformed values so the caller can fall
+    back to a different rate field.
+    """
+    try:
+        if "/" in fraction_str:
+            num, den = fraction_str.split("/")
+            den_f = float(den)
+            if den_f == 0:
+                return 0.0
+            return float(num) / den_f
+        return float(fraction_str)
+    except (ValueError, AttributeError):
+        return 0.0
 
 
 if __name__ == "__main__":
