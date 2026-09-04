@@ -115,6 +115,54 @@ The defaults work for most jobs. If you want to fine-tune:
 
 Number from 0 (huge file, perfect quality) to 51 (tiny file, awful quality). Default is **18**, which looks essentially identical to source. Lower = better.
 
+## Filling in the fields
+
+The two main nodes take a `VIDEO` wire and have no empty text fields. The
+building-block nodes do. Here is what goes in each one.
+
+### Convert Framerate and Remux Container
+
+| Field | Empty means | Example of a filled value |
+| --- | --- | --- |
+| `input` | Required | Wire a `Load Video` output |
+| `target_fps` | n/a | `25.0` · `23.976` · `29.97` · `50.0` |
+| `method` | `speed_change` | `frame_drop` for 60 to 30 · `minterpolate` for 25 to 50 |
+| `audio_mode` | `allow_shift` | `preserve_pitch` for anything with dialogue |
+| `crf` | `18` | `14` near lossless · `23` web delivery |
+| `minterpolate_quality` | `high` | `fast` for a quick check |
+| `target_format` (Remux) | `mov` | `mp4` · `mkv` |
+| `filename_prefix` (Remux) | `video/ComfyUI` | `video/promo_sh012_25fps` → `output/video/promo_sh012_25fps_00001.mov` |
+
+### Building-block nodes
+
+Paths must be **absolute**, or relative to the ComfyUI working directory. On the
+Mac desktop app that is `~/comfyui/`. Use forward slashes on every platform.
+
+| Node | Field | Empty means | Example of a filled value |
+| --- | --- | --- | --- |
+| Probe Video, Detect VFR, Verify FPS, Verify A/V Sync, Verify Integrity | `video_path` | Required. ffprobe errors on an empty path | `/Users/colinbyrne/comfyui/input/beach_take3.mp4` |
+| Verify FPS | `target_fps` / `tolerance` | n/a | `25.0` / `0.001` |
+| Verify A/V Sync | `duration_tolerance` / `start_tolerance` | n/a | `0.05` / `0.01` (seconds) |
+| Calc Conversion | `source_fps`, `target_fps`, `method`, `input_duration`, `input_frame_count` | Duration and count `0` = unknown, the node estimates | `24.0`, `25.0`, `speed_change`, `12.5`, `300` |
+| Calc Audio | `source_fps`, `target_fps`, `audio_mode`, `sample_rate` | n/a | `24.0`, `25.0`, `preserve_pitch`, `48000` |
+| Generate Output Path | `input_path` | Required | `/Users/colinbyrne/comfyui/input/beach_take3.mp4` |
+| Generate Output Path | `output_dir` | Same folder as the input | `/Users/colinbyrne/comfyui/output/converted` |
+| Build FFmpeg Command | `video_path` / `output_path` | Required. Usually wired from Probe Video and Generate Output Path | `/Users/colinbyrne/comfyui/input/beach_take3.mp4` / `/Users/colinbyrne/comfyui/output/beach_take3_25fps.mp4` |
+| Build FFmpeg Command | `video_codec` | `libx264` | `libx265` · `prores_ks` · `h264_videotoolbox` (Mac hardware) |
+| Build FFmpeg Command | `preset` | `medium` | `slow` for smaller files · `veryfast` for a draft |
+| Build FFmpeg Command | `audio_codec` / `audio_bitrate` | `aac` / `192k` | `aac` / `320k` · `pcm_s24le` / leave bitrate as is for ProRes masters |
+| Run FFmpeg Conversion | `expected_duration` | `0` = no check | `12.5` to have the node verify the output length |
+| Quality Metrics | `output_path` / `reference_path` | Required, both | The converted file and the original |
+| Quality Metrics | `include_vmaf` | `false` | `true` only if your ffmpeg build has libvmaf; it is slow |
+
+A full manual chain, if you want every dial:
+
+```
+[Probe Video] → [Extract Media Info] → [Calc Conversion] ─┐
+                                     → [Calc Audio] ──────┼→ [Build FFmpeg Command] → [Run FFmpeg Conversion] → [Verify FPS]
+[Generate Output Path] ───────────────────────────────────┘
+```
+
 ## Mac users — about Full Disk Access
 
 The ComfyUI desktop app on Mac is sandboxed. By default it can only read/write inside `~/comfyui/`. If you want to convert a video sitting somewhere else on your computer:
