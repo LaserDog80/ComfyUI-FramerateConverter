@@ -1,5 +1,9 @@
 # Framerate Converter
 
+Version 1.0.2: conversion, remux, probe and quality-check processes now respond to
+ComfyUI Cancel and are stopped on timeout. Logs are captured on disk; returned
+diagnostics retain the last MiB. Restart ComfyUI to load the backend update.
+
 *Part of the Trope Tools suite — by [TropeMedia](https://github.com/LaserDog80).*
 
 Two simple ComfyUI nodes for working with video files:

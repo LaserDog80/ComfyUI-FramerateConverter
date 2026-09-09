@@ -7,6 +7,7 @@ A divergence > 0.5 fps indicates variable framerate.
 
 import json
 import subprocess
+from ._ffmpeg import run_cancellable
 
 from ._ffmpeg import FFPROBE
 
@@ -37,7 +38,7 @@ class Trope_DetectVFR:
             video_path,
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        result = run_cancellable(cmd, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
             raise RuntimeError(f"ffprobe failed: {result.stderr.strip()}")
 

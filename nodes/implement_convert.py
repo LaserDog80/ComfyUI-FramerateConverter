@@ -7,6 +7,7 @@ the result status, output path, and FFmpeg stderr output.
 
 import re
 import subprocess
+from ._ffmpeg import run_cancellable
 
 
 class Trope_RunFFmpeg:
@@ -34,7 +35,7 @@ class Trope_RunFFmpeg:
         output_path = command_list[-1]
 
         try:
-            result = subprocess.run(
+            result = run_cancellable(
                 command_list,
                 capture_output=True,
                 text=True,

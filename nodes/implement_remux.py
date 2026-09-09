@@ -12,6 +12,7 @@ import hashlib
 import io
 import os
 import subprocess
+from ._ffmpeg import run_cancellable
 
 from ._ffmpeg import FFMPEG
 
@@ -75,7 +76,7 @@ class Trope_Remux:
         ]
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            result = run_cancellable(cmd, capture_output=True, text=True, timeout=600)
         except subprocess.TimeoutExpired:
             raise RuntimeError("Remux timed out (10 minute limit)")
         except FileNotFoundError:

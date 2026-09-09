@@ -7,6 +7,7 @@ Optionally calculates VMAF (requires FFmpeg compiled with libvmaf).
 
 import re
 import subprocess
+from ._ffmpeg import run_cancellable
 
 from ._ffmpeg import FFMPEG
 
@@ -65,11 +66,11 @@ class Trope_QualityMetrics:
             FFMPEG,
             "-i", output_path,
             "-i", reference_path,
-            "-lavfi", "psnr=stats_file=-",
+            "-lavfi", "psnr",
             "-f", "null", "-",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            result = run_cancellable(cmd, capture_output=True, text=True, timeout=300)
             match = re.search(r"average:(\d+\.?\d*)", result.stderr)
             if match:
                 return float(match.group(1))
@@ -82,11 +83,11 @@ class Trope_QualityMetrics:
             FFMPEG,
             "-i", output_path,
             "-i", reference_path,
-            "-lavfi", "ssim=stats_file=-",
+            "-lavfi", "ssim",
             "-f", "null", "-",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+            result = run_cancellable(cmd, capture_output=True, text=True, timeout=300)
             match = re.search(r"All:(\d+\.?\d*)", result.stderr)
             if match:
                 return float(match.group(1))
@@ -103,7 +104,7 @@ class Trope_QualityMetrics:
             "-f", "null", "-",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            result = run_cancellable(cmd, capture_output=True, text=True, timeout=600)
             if "Unknown filter" in result.stderr or "No such filter" in result.stderr:
                 return None
             match = re.search(r"VMAF score:\s*(\d+\.?\d*)", result.stderr)

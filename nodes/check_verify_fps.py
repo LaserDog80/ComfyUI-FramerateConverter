@@ -7,6 +7,7 @@ the target fps with a configurable tolerance (default ±0.001).
 
 import json
 import subprocess
+from ._ffmpeg import run_cancellable
 
 from ._ffmpeg import FFPROBE
 
@@ -42,7 +43,7 @@ class Trope_VerifyFPS:
         ]
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            result = run_cancellable(cmd, capture_output=True, text=True, timeout=60)
         except subprocess.TimeoutExpired:
             return (False, 0.0, "ffprobe timed out",)
         except FileNotFoundError:

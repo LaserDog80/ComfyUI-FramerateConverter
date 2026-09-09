@@ -7,6 +7,7 @@ are within tolerance of each other.
 
 import json
 import subprocess
+from ._ffmpeg import run_cancellable
 
 from ._ffmpeg import FFPROBE
 
@@ -41,7 +42,7 @@ class Trope_VerifySync:
         ]
 
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            result = run_cancellable(cmd, capture_output=True, text=True, timeout=60)
         except subprocess.TimeoutExpired:
             return (False, "ffprobe timed out",)
         except FileNotFoundError:

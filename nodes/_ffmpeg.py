@@ -9,6 +9,52 @@ FileNotFoundError. Resolve to absolute paths once at import time and reuse.
 
 import os
 import shutil
+import subprocess
+import tempfile
+import time
+
+try:
+    import comfy.model_management as model_management
+except ImportError:
+    model_management = None
+
+
+def run_cancellable(command, *, capture_output=True, text=True, timeout=60):
+    """Run ffmpeg/ffprobe with cancellation and disk-backed log capture.
+
+    Keep stdout intact for ffprobe JSON; retain the last MiB of diagnostics.
+    No pipe can fill while waiting. Always reap the child on timeout/cancel.
+    """
+    def check():
+        if model_management is not None:
+            model_management.throw_exception_if_processing_interrupted()
+
+    check()
+    with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+        process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr)
+        start = time.monotonic()
+        try:
+            while process.poll() is None:
+                check()
+                if time.monotonic() - start >= timeout:
+                    raise subprocess.TimeoutExpired(command, timeout)
+                time.sleep(0.1)
+            check()
+        except BaseException:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+            raise
+        stdout.seek(0)
+        stderr.seek(max(0, stderr.tell() - 1024 * 1024))
+        out, err = stdout.read(), stderr.read()
+        if text:
+            out, err = out.decode("utf-8", errors="replace"), err.decode("utf-8", errors="replace")
+        return subprocess.CompletedProcess(command, process.returncode, out, err)
 
 
 _EXTRA_DIRS = [

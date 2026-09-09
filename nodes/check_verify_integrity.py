@@ -6,6 +6,7 @@ decode errors in stderr output.
 """
 
 import subprocess
+from ._ffmpeg import run_cancellable
 
 from ._ffmpeg import FFMPEG
 
@@ -36,7 +37,7 @@ class Trope_VerifyIntegrity:
         ]
 
         try:
-            result = subprocess.run(
+            result = run_cancellable(
                 cmd,
                 capture_output=True,
                 text=True,
